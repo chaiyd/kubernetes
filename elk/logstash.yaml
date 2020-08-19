@@ -1,0 +1,76 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: logstash-conf
+  namespace: common
+data:
+  logstash.conf: |
+    input {
+      beats {
+         host => "0.0.0.0"
+         port => 5044
+      }
+    }
+
+    filter {
+       grok {
+          match=>["message","%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:msg}"]
+       }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["http://elasticsearch:9200"]
+        index => "%{[@metadata][beat]}-%{[@metadata][version]}"
+      }
+      stdout { codec => rubydebug }
+    }
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: logstash
+  namespace: common
+  labels:
+    app: logstash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:7.8.1
+#          command: ["/bin/sh","-c"]
+#          args: ["/usr/share/logstash/bin/logstash -f /usr/share/logstash/config/indexer-kafka-named-k8s.conf"]
+          volumeMounts:
+            - name: logstash-conf
+              mountPath: /usr/share/logstash/pipeline
+      volumes:
+        - name: logstash-conf
+          configMap:
+            name: logstash-conf
+                
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: common
+  labels:
+    name: logstash
+spec:
+  #type: NodePort
+  ports:
+    - name: logstash
+      port: 5044
+      targetPort: 5044
+      protocol: TCP
+  selector:
+    app: logstash
