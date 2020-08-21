@@ -123,8 +123,8 @@ spec:
       volumes:
         - name: nfs
           nfs:
-            server: 322ef4ade8-muu46.cn-shanghai.nas.aliyuncs.com
-            path: "/kubernetes/common/elasticsearch/data"
+            server: nfs.com
+            path: "/elasticsearch/data"
       # Elasticsearch requires vm.max_map_count to be at least 262144.
       # If your OS already sets up this number to a higher value, feel free
       # to remove this init container.

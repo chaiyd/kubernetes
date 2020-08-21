@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: common
+  labels:
+    app: node-exporter
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      containers:
+        - name: node-exporter
+          image: prom/node-exporter:v1.0.1
+          ports:
+            - containerPort: 9100
+              protocol: TCP
+              name: http
+      #hostNetwork: true
+      #hostPID: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter
+  namespace: common
+  annotations:
+    prometheus.io/scrape: 'true'
+  labels:
+    app: node-exporter
+spec:
+  ports:
+    - name: node-exporter
+      port: 9100
+#      nodePort: 30002
+      protocol: TCP
+#  type: NodePort
+  selector:
+    app: node-exporter

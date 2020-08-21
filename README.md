@@ -5,3 +5,6 @@
 ### ELK
 * elk 采用es，filebeat，kibana，进行日志采集
 * logstash.yaml 仅用来存档，并未使用
+
+
+### prometheus
