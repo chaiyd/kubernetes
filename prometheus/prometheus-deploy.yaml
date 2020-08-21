@@ -6,6 +6,7 @@ metadata:
 rules:
   - apiGroups: [""] # "" indicates the core API group
     resources:
+      - namespaces
       - nodes
       - nodes/proxy
       - services
@@ -17,8 +18,10 @@ rules:
       - list
   - apiGroups:
       - extensions
+      - apps
     resources:
       - ingresses
+      - deployments
     verbs:
       - get
       - watch
@@ -42,7 +45,6 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: prometheus
-    namespace: common
 roleRef:
   kind: ClusterRole
   name: prometheus
