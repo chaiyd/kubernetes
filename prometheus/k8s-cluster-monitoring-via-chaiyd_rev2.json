@@ -2333,8 +2333,8 @@
     ]
   },
   "time": {
-    "from": "2020-08-21T08:53:15.273Z",
-    "to": "2020-08-21T09:53:15.273Z"
+    "from": "now-1h",
+    "to": "now"
   },
   "timepicker": {
     "refresh_intervals": [
