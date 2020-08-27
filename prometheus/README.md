@@ -17,6 +17,6 @@ prometheus version 2.19.2
 grafana version 7.1.0
 ```
 
-![grafana-1](/images/grafana-1.png)
+![grafana-1](../images/grafana-1.png)
 
 
