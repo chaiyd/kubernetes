@@ -106,9 +106,9 @@ spec:
         - containerPort: 9300
           name: transport
           protocol: TCP
-        volumeMounts:
-          - name: nfs
-            mountPath: /usr/share/elasticsearch/data #容器内挂载的路径
+#        volumeMounts:
+#          - name: nfs
+#            mountPath: /usr/share/elasticsearch/data #elasticsearch存储数据路径
         env:
         - name: "NAMESPACE"
           valueFrom:
@@ -120,11 +120,11 @@ spec:
 #      - name: nfs #挂载pvc作为es存储，重启pod后数据保留。
 #        persistentVolumeClaim:
 #          claimName: k8s-elk-pvc
-      volumes:
-        - name: nfs
-          nfs:
-            server: nfs.com
-            path: "/elasticsearch/data"
+#      volumes:
+#        - name: nfs
+#          nfs:
+#            server: nfs.com   #自行更改nfs 服务器
+#            path: "/elasticsearch/data"
       # Elasticsearch requires vm.max_map_count to be at least 262144.
       # If your OS already sets up this number to a higher value, feel free
       # to remove this init container.
