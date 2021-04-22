@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: common
+  labels:
+    app: nginx
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      volumes:
+        - name: nfs
+          nfs:
+            server: nas.aliyuncs.com
+            path: "/kubernetes/common/nginx/html"
+
+      containers:
+      - image:
+        imagePullPolicy: IfNotPresent
+        name: nginx
+
+        volumeMounts:
+          - name: nfs
+            mountPath: /etc/nginx/html
+          - name: logs
+#      dnsPolicy: ClusterFirstWithHostNet
+#      hostNetwork: true
+
+      imagePullSecrets:
+      - name: docker-registry
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    # here is your annotation, example
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-id: slb
+  name: nginx
+  namespace: common
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 80
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 443
+  type: LoadBalancer
