@@ -11,6 +11,9 @@ data:
         "accessKeySecret": "$your-AccessKeySecret-base64"
       }
     }
+# base64 AccessKey & AccessKeySecret
+# echo -n "$AccessKeyID" |base64
+# echo -n "$AcceessKeySecret"|base64
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
