@@ -4,9 +4,10 @@
 
 #### 若集群已经在使用中，可使用以下
 - cloud-controller-manager.conf
-  ```shell
+  ```
   $CA_DATA
   cat /etc/kubernetes/pki/ca.crt|base64 -w 0
+  # 修改完配置,文件需放入目录/etc/kubernetes
   ```
 - cloud-config.conf
   ```shell
@@ -16,7 +17,7 @@
   ```
 
 - os: CentOS7
-- 修改 /usr/lib/systemd/system/kubelet.service
+- 修改vim /usr/lib/systemd/system/kubelet.service
   ```
   [Unit]
   Description=kubelet: The Kubernetes Node Agent
