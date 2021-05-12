@@ -4,6 +4,8 @@
 ## metrics
 * 用于获取容器各项指标
 * metrics-server 与 kube-state-metrics区别请参考k8s文档，这里不做赘述。
+* https://github.com/kubernetes-sigs/metrics-server.git
+* https://github.com/kubernetes/kube-state-metrics.git
 
 ## grafana模板
 * https://grafana.com/grafana/dashboards/12870
