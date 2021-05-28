@@ -7,6 +7,7 @@
   ```shell
   $CA_DATA
   cat /etc/kubernetes/pki/ca.crt|base64 -w 0
+  # 修改完配置,文件需放入目录/etc/kubernetes
   ```
 - cloud-config.conf
   ```shell
@@ -16,7 +17,7 @@
   ```
 
 - os: CentOS7
-- 修改 /usr/lib/systemd/system/kubelet.service
+- 修改vim /usr/lib/systemd/system/kubelet.service
   ```
   [Unit]
   Description=kubelet: The Kubernetes Node Agent
@@ -41,7 +42,7 @@
 
 ## others
 
-```
+```shell
 # 查看node providerID
 kubectl get node -o yaml|grep providerID
 # 删除providerID
@@ -52,6 +53,11 @@ systemctl daemon-reload
 systemctl restart kubelet
 
 kubeadm token create --print-join-command
+
+# 将 Master 也当作 Node 使用
+kubectl taint node ${NODE_NAME} node-role.kubernetes.io/master-
+# 将 Master 恢复成 Master Only 状态
+kubectl taint node ${NODE_NAME} node-role.kubernetes.io/master="":NoSchedule
 ```
 
 
