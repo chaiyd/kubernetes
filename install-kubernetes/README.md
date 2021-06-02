@@ -116,16 +116,16 @@
 - Kubernetes does not offer an implementation of network load-balancers (Services of type LoadBalancer) for bare metal clusters.
 - configmap.yaml
   ```yaml
-   apiVersion: v1
-   kind: ConfigMap
-   metadata:
-     namespace: metallb-system
-     name: config
-   data:
-     config: |
-       address-pools:
-         - name: default
-       protocol: layer2
-         addresses:
-           - 192.168.6.240-192.168.6.245
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: metallb-system
+    name: config
+  data:
+    config: |
+      address-pools:
+        - name: default
+      protocol: layer2
+        addresses:
+          - 192.168.6.240-192.168.6.245
   ```
