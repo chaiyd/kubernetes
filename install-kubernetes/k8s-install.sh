@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-version=1.21.0
+version=1.21.1
 local_ip=192.168.10.10
 
 echo "---------------------------close，swap，selinux---------------------------"
