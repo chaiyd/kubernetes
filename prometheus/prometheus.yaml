@@ -144,6 +144,25 @@ data:
           regex: (.+)
           target_label: __metrics_path__
           replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+        metric_relabel_configs:
+          - source_labels: [instance]
+            separator: ;
+            regex: (.+)
+            target_label: node
+            replacement: $1
+            action: replace
+          - source_labels: [pod_name]
+            separator: ;
+            regex: (.+)
+            target_label: pod
+            replacement: $1
+            action: replace
+          - source_labels: [container_name]
+            separator: ;
+            regex: (.+)
+            target_label: container
+            replacement: $1
+            action: replace
 
       - job_name: 'kubernetes-service-endpoints'
         kubernetes_sd_configs:
@@ -246,6 +265,26 @@ data:
         - source_labels: [__meta_kubernetes_pod_name]
           action: replace
           target_label: kubernetes_pod_name
+
+      - job_name: kube-state-metrics
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - kube-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_name]
+            regex: kube-state-metrics
+            replacement: $1
+            action: keep
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: k8s_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: k8s_sname
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -292,8 +331,8 @@ kind: StatefulSet
 metadata:
   labels:
     app: prometheus
-    kubernetes.io/cluster-service: "true"
-    addonmanager.kubernetes.io/mode: Reconcile
+#    kubernetes.io/cluster-service: "true"
+#    addonmanager.kubernetes.io/mode: Reconcile
   name: prometheus
   namespace: kube-system
 spec:
