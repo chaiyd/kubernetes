@@ -367,6 +367,8 @@ spec:
               subPath: prometheus.yml
             - mountPath: /etc/prometheus/rules
               name: prometheus-rules-volume
+#            - mountPath: /etc/prometheus/rules
+#              name: rules
           ports:
             - containerPort: 9090
               protocol: TCP
@@ -392,8 +394,12 @@ spec:
       volumes:
         - name: data-nfs
           nfs:
-            server: 192.168.6.190    # update nfs server
+            server: nfs.com    # update nfs server
             path: "/data/nfs/kubernetes/kube-system/prometheus/data"
+        - name: rules
+          nfs:
+            server: nfs.com    # update nfs server
+            path: "/data/nfs/kubernetes/kube-system/prometheus/data/rules"
         - name: prometheus-conf-volume
           configMap:
             name: prometheus-conf

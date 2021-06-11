@@ -1,0 +1,144 @@
+groups: 
+- name: kubernetes-system
+  rules:
+  - alert: 节点文件系统24小时内用完
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间，速率计算可能在24小时内填满！'
+    expr: |
+      (
+        node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 40
+      and
+        predict_linear(node_filesystem_avail_bytes{job="node-exporter",fstype!=""}[6h], 24*60*60) < 0
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 1h
+    labels:
+      severity: warning
+  - alert: 节点文件系统4小时内用完
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间，速率计算可能在4小时内填满！'
+    expr: |
+      (
+        node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 20
+      and
+        predict_linear(node_filesystem_avail_bytes{job="node-exporter",fstype!=""}[6h], 4*60*60) < 0
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 1h
+    labels:
+      severity: critical
+  - alert: 节点文件系统只剩下不到5%
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间！'
+    expr: |
+      (
+        node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 5
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 10m
+    labels:
+      severity: warning
+  - alert: 节点文件系统只剩下不到3%
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间！'
+    expr: |
+      (
+        node_filesystem_avail_bytes{job="node-exporter",fstype!=""} / node_filesystem_size_bytes{job="node-exporter",fstype!=""} * 100 < 3
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 10m
+    labels:
+      severity: critical
+  - alert: 节点挂载的文件系统空闲的文件节点个数24小时内用完
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间，速率计算可能在24小时内填满！'
+    expr: |
+      (
+        node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 40
+      and
+        predict_linear(node_filesystem_files_free{job="node-exporter",fstype!=""}[6h], 24*60*60) < 0
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 1h
+    labels:
+      severity: warning
+  - alert: 节点挂载的文件系统空闲的文件节点个数4小时内用完
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间，速率计算可能在4小时内填满！'
+    expr: |
+      (
+        node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 20
+      and
+        predict_linear(node_filesystem_files_free{job="node-exporter",fstype!=""}[6h], 4*60*60) < 0
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 1h
+    labels:
+      severity: critical
+  - alert: 节点挂载的文件系统空闲的文件节点个数不到5%
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间！'
+    expr: |
+      (
+        node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 5
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 10m
+    labels:
+      severity: warning
+  - alert: 节点挂载的文件系统空闲的文件节点个数不到3%
+    annotations:
+      message: '{{ $labels.cluster }} 集群的 {{ $labels.instance }} 节点的文件系统的 {{ $labels.device }} 设备只剩下 {{ printf "%.2f" $value }}% 可使用空间！'
+    expr: |
+      (
+        node_filesystem_files_free{job="node-exporter",fstype!=""} / node_filesystem_files{job="node-exporter",fstype!=""} * 100 < 3
+      and
+        node_filesystem_readonly{job="node-exporter",fstype!=""} == 0
+      )
+    for: 10m
+    labels:
+      severity: critical
+  - alert: 节点CPU使用大于85%
+    expr: 100 - (avg by(cluster,instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+    for: 3m
+    labels:
+      severity: critical
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点 CPU 使用率在 3m 内持续达到 {{ printf "%.0f" $value }}%！'
+  - alert: 节点内存使用大于85%
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点侦测到内存使用率在 3m 内持续达到 {{ printf "%.0f" $value }}%！'
+    expr: |
+      100 - ( node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 ) > 85
+    for: 3m
+    labels:
+      severity: critical
+  - alert: 侦测到OOM触发行为
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点侦测到 OOM 行为！'
+    expr: |
+      increase(node_vmstat_oom_kill[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+#  - alert: 节点侦测到文件描述符切换次数过高
+#    expr: (rate(node_context_switches_total[5m])) / (count without(cpu, mode) (node_cpu_seconds_total{mode="idle"})) > 5000
+#    for: 1m
+#    labels:
+#      severity: critical
+#    annotations:
+#      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点侦测到文件描述符切换次数达到 {{ printf "%.0f" $value }} 次/s!'
+#  - alert: 节点侦测到打开的文件描述符过多
+#    expr: avg by (instance,cluster) (node_filefd_allocated) > 102400
+#    for: 1m
+#    labels:
+#      severity: critical
+#    annotations:
+#      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点侦测到打开的文件描述符达到 {{ printf "%.0f" $value }}！'

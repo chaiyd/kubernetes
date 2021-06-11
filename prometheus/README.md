@@ -15,6 +15,11 @@
 - grafana version 8.0.1
 ```
 
+## rules
+- zhangyu
+- https://gitee.com/zhangyudd/prometheus.git
+
+
 ![grafana-1](https://github.com/chaiyd/images/blob/main/grafana/grafana-1.png?raw=true)
 
 ![grafana-2](https://github.com/chaiyd/images/blob/main/grafana/grafana-2.png?raw=true)

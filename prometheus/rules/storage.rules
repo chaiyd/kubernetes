@@ -1,0 +1,36 @@
+group:
+- name: kubernetes-storage
+  rules:
+  - alert: K8S的PV使用量警报
+    annotations:
+      message: '{{ $labels.cluster }} 集群命名空间 {{ $labels.namespace }} 中被PVC {{ $labels.persistentvolumeclaim }} 声明的的PV只剩下 {{ $value | humanizePercentage }} 空闲！'
+    expr: |
+      kubelet_volume_stats_available_bytes{job="kubelet", metrics_path="/metrics"}
+        /
+      kubelet_volume_stats_capacity_bytes{job="kubelet", metrics_path="/metrics"}
+        < 0.03
+    for: 1m
+    labels:
+      severity: critical
+  - alert: KubePersistentVolumeFullInFourDays
+    annotations:
+      message: '{{ $labels.cluster }} 集群通过抽样计算，命名空间 {{ $labels.namespace }} 中被PVC {{ $labels.persistentvolumeclaim }} 声明的的PV将在4天内用尽，当前剩余 {{ $value | humanizePercentage }}！'
+    expr: |
+      (
+        kubelet_volume_stats_available_bytes{job="kubelet", metrics_path="/metrics"}
+          /
+        kubelet_volume_stats_capacity_bytes{job="kubelet", metrics_path="/metrics"}
+      ) < 0.15
+      and
+      predict_linear(kubelet_volume_stats_available_bytes{job="kubelet", metrics_path="/metrics"}[6h], 4 * 24 * 3600) < 0
+    for: 1h
+    labels:
+      severity: critical
+  - alert: K8S的PV错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群 PV {{ $labels.persistentvolume }} 的状态为 {{ $labels.phase }}！'
+    expr: |
+      kube_persistentvolume_status_phase{phase=~"Failed|Pending",job="kube-state-metrics"} > 0
+    for: 5m
+    labels:
+      severity: critical

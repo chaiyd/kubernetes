@@ -1,0 +1,167 @@
+groups:
+- name: prometheus
+  rules:
+  - alert: Prometheus错误的配置
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 再重载配置时失败！'
+    expr: |
+      # Without max_over_time, failed scrapes could create false negatives, see
+      # https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.
+      max_over_time(prometheus_config_last_reload_successful{job="prometheus-k8s",namespace="monitoring"}[5m]) == 0
+    for: 1m
+    labels:
+      severity: critical
+  - alert: Prometheus通知队列已满
+    annotations:
+      message: Prometheus {{$labels.namespace}}/{{$labels.pod}} 的报警通知队列已满！
+        30m.
+    expr: |
+      # Without min_over_time, failed scrapes could create false negatives, see
+      # https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.
+      (
+        predict_linear(prometheus_notifications_queue_length{job="prometheus-k8s",namespace="monitoring"}[5m], 60 * 30)
+      >
+        min_over_time(prometheus_notifications_queue_capacity{job="prometheus-k8s",namespace="monitoring"}[5m])
+      )
+    for: 2m
+    labels:
+      severity: warning
+  - alert: Prometheus在推送警报时发生错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{$labels.namespace}}/{{$labels.pod}} 在推送警报至某些 Alertmanager {{$labels.alertmanager}} 时出现了 {{ printf "%.1f" $value }}% 的错误！'
+    expr: |
+      (
+        rate(prometheus_notifications_errors_total{job="prometheus-k8s",namespace="monitoring"}[5m])
+      /
+        rate(prometheus_notifications_sent_total{job="prometheus-k8s",namespace="monitoring"}[5m])
+      )
+      * 100
+      > 1
+    for: 2m
+    labels:
+      severity: warning
+  - alert: Prometheus在推送警报时全部错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{$labels.namespace}}/{{$labels.pod}} 在推送警报至全部 Alertmanager {{$labels.alertmanager}} 时出现了 {{ printf "%.1f" $value }}% 的错误！'
+    expr: |
+      min without(alertmanager) (
+        rate(prometheus_notifications_errors_total{job="prometheus-k8s",namespace="monitoring"}[5m])
+      /
+        rate(prometheus_notifications_sent_total{job="prometheus-k8s",namespace="monitoring"}[5m])
+      )
+      * 100
+      > 3
+    for: 2m
+    labels:
+      severity: critical
+  - alert: Prometheus未连接Alertmanagers
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 没有连接到任何 Alertmanagers！'
+    expr: |
+      max_over_time(prometheus_notifications_alertmanagers_discovered{job="prometheus"}[5m]) < 1
+    for: 2m
+    labels:
+      severity: warning
+  - alert: PrometheusTSDB重载失败
+    annotations:
+      message: '{{ $labels.cluster }} 集群在过去的3小时内 Prometheus {{$labels.namespace}}/{{$labels.pod}} 侦测到 {{$value | humanize}} 个重载错误！'
+    expr: |
+      increase(prometheus_tsdb_reloads_failures_total{job="prometheus-k8s",namespace="monitoring"}[3h]) > 0
+    for: 5m
+    labels:
+      severity: warning
+  - alert: PrometheusTSDB压缩失败
+    annotations:
+      message: '{{ $labels.cluster }} 集群在过去的3小时内 Prometheus {{$labels.namespace}}/{{$labels.pod}} has detected {{$value | humanize}} 个压缩错误！'
+    expr: |
+      increase(prometheus_tsdb_compactions_failed_total{job="prometheus-k8s",namespace="monitoring"}[3h]) > 0
+    for: 5m
+    labels:
+      severity: warning
+  - alert: Prometheus没有采集到数据样本
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 没有采集到数据样本！'
+    expr: |
+      rate(prometheus_tsdb_head_samples_appended_total{job="prometheus-k8s",namespace="monitoring"}[5m]) <= 0
+    for: 30m
+    labels:
+      severity: warning
+  - alert: Prometheus重复的时间戳
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 正在丢弃 {{ printf "%.4g" $value  }} 拥有相同时间戳不同数据的数据样本！'
+    expr: |
+      rate(prometheus_target_scrapes_sample_duplicate_timestamp_total{job="prometheus-k8s",namespace="monitoring"}[5m]) > 0
+    for: 10m
+    labels:
+      severity: warning
+  - alert: Prometheus时间戳超过限制
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 正在丢弃 {{ printf "%.4g" $value  }} 超过时间戳限制的数据样本！'
+    expr: |
+      rate(prometheus_target_scrapes_sample_out_of_order_total{job="prometheus-k8s",namespace="monitoring"}[5m]) > 0
+    for: 10m
+    labels:
+      severity: warning
+  - alert: Prometheus远程存储失败
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 在推送至数据都队列 {{$labels.queue}} 数据时有 {{ printf "%.1f" $value }}% 的错误！'
+    expr: |
+      (
+        rate(prometheus_remote_storage_failed_samples_total{job="prometheus-k8s",namespace="monitoring"}[5m])
+      /
+        (
+          rate(prometheus_remote_storage_failed_samples_total{job="prometheus-k8s",namespace="monitoring"}[5m])
+        +
+          rate(prometheus_remote_storage_succeeded_samples_total{job="prometheus-k8s",namespace="monitoring"}[5m])
+        )
+      )
+      * 100
+      > 1
+    for: 15m
+    labels:
+      severity: critical
+  - alert: Prometheus远程数据写落后
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 远程写落后于队列 {{$labels.queue}} {{ printf "%.1f" $value }} 秒！'
+    expr: |
+      # Without max_over_time, failed scrapes could create false negatives, see
+      # https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.
+      (
+        max_over_time(prometheus_remote_storage_highest_timestamp_in_seconds{job="prometheus-k8s",namespace="monitoring"}[5m])
+      - on(job, instance) group_right
+        max_over_time(prometheus_remote_storage_queue_highest_sent_timestamp_seconds{job="prometheus-k8s",namespace="monitoring"}[5m])
+      )
+      > 120
+    for: 15m
+    labels:
+      severity: critical
+  - alert: Prometheus远程写预期切片
+    annotations:
+      message: '{{ $labels.cluster }} 集群 Prometheus {{$labels.namespace}}/{{$labels.pod}} 远程写的预期切片数估计需要 {{ $value }} shards, 大于最大值 {{ printf `prometheus_remote_storage_shards_max{instance="%s",job="prometheus-k8s",namespace="monitoring"}` $labels.instance | query | first | value }}！'
+    expr: |
+      # Without max_over_time, failed scrapes could create false negatives, see
+      # https://www.robustperception.io/alerting-on-gauges-in-prometheus-2-0 for details.
+      (
+        max_over_time(prometheus_remote_storage_shards_desired{job="prometheus-k8s",namespace="monitoring"}[5m])
+      >
+        max_over_time(prometheus_remote_storage_shards_max{job="prometheus-k8s",namespace="monitoring"}[5m])
+      )
+    for: 15m
+    labels:
+      severity: warning
+  - alert: Prometheus规则错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群在5分钟内 Prometheus {{$labels.namespace}}/{{$labels.pod}} 评估 {{ printf "%.0f" $value }} 条的规则失败！'
+    expr: |
+      increase(prometheus_rule_evaluation_failures_total{job="prometheus-k8s",namespace="monitoring"}[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+  - alert: Prometheus缺少规则评估
+    annotations:
+      message: '{{ $labels.cluster }} 集群在过去5分钟内 Prometheus {{$labels.namespace}}/{{$labels.pod}} 错过了 {{ printf "%.0f" $value }} 规则组评估！'
+    expr: |
+      increase(prometheus_rule_group_iterations_missed_total{job="prometheus-k8s",namespace="monitoring"}[5m]) > 0
+    for: 5m
+    labels:
+      severity: warning

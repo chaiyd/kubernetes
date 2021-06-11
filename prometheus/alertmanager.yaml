@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: kube-system
+  labels:
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: EnsureExists
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m    # 处理超时时间，默认为5min
+      smtp_smarthost: 'smtp.163.com:465'
+      smtp_from: 'linuxzhangyu@163.com'
+      smtp_auth_username: 'linuxzhangyu@163.com'
+      smtp_auth_password: 'xxx'
+      smtp_hello: '警报邮件'
+      smtp_require_tls: false
+    route:
+      group_by: ['alertname', 'cluster','job']
+      group_wait: 10s         # 最初即第一次等待多久时间发送一组警报的通知
+      group_interval: 10s     # 在发送新警报前的等待时间
+      repeat_interval: 30m     # 发送重复警报的周期 对于email配置中，此项不可以设置过低，否则将会由于邮件发送太多频繁，被smtp服务器拒绝
+      receiver: default       # 发送警报的接收者的名称，以下receivers name的名称
+
+      routes:
+      - receiver: email
+        group_wait: 10s
+        match:
+          team: ops
+      - receiver: DingWebhook
+        match:
+          alertname: DeadMansSwitch
+    receivers:
+    - name: 'default'
+      email_configs:
+      - to: 'edgar.z@foxmail.com'
+        send_resolved: true
+    - name: 'email'
+      email_configs:
+      - to: 'edgar.z@foxmail.com'
+        send_resolved: true
+    - name: 'DingWebhook'
+      webhook_configs:
+      - url: http://webhook-dingtalk/dingtalk/send/
+        send_resolved: true
+    ##### 告警抑制
+    # inhibit_rules:
+    #   - source_match:  # 当此告警发生，其他的告警被抑制
+    #       severity: 'critical'
+    #     target_match:   # 被抑制的对象
+    #       severity: 'warning'
+    #     equal: ['id', 'instance']
+
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: alertmanager
+  namespace: kube-system
+  labels:
+    k8s-app: alertmanager
+    kubernetes.io/cluster-service: "true"
+    addonmanager.kubernetes.io/mode: Reconcile
+    version: v0.21.0
+spec:
+  serviceName: "alertmanager-operated"
+  replicas: 1 # 2 为集群模式，单体库改为1，去掉集群参数
+  selector:
+    matchLabels:
+      k8s-app: alertmanager
+      version: v0.21.0
+  template:
+    metadata:
+      labels:
+        k8s-app: alertmanager
+        version: v0.21.0
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      tolerations:
+        - key: "CriticalAddonsOnly"
+          operator: "Exists"
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+      affinity:
+        # podAntiAffinity:
+        #   requiredDuringSchedulingIgnoredDuringExecution:
+        #   - labelSelector:
+        #       matchExpressions:
+        #       - key: k8s-app
+        #         operator: In
+        #         values:
+        #         - alertmanager
+        #     topologyKey: "kubernetes.io/hostname"
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 60
+              preference:
+                matchExpressions:
+                  - {key: devops-node, operator: In, values: ["beijing-node"]}
+      containers:
+        - name: prometheus-alertmanager
+          image: "prom/alertmanager:v0.21.0"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - "--config.file=/etc/config/alertmanager.yml"
+            - "--storage.path=/data"
+            # - "--cluster.listen-address=${POD_IP}:9094"
+            - "--web.listen-address=:9093"
+            # - "--cluster.peer=alertmanager-0.alertmanager-operated:9094"
+            # - "--cluster.peer=alertmanager-1.alertmanager-operated:9094"
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: TZ
+              value: Asia/Shanghai
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          ports:
+            - containerPort: 9093
+              name: web
+              protocol: TCP
+            - containerPort: 9094
+              name: mesh-tcp
+              protocol: TCP
+            - containerPort: 9094
+              name: mesh-udp
+              protocol: UDP
+          readinessProbe:
+            httpGet:
+              path: /#/status
+              port: 9093
+            initialDelaySeconds: 30
+            timeoutSeconds: 60
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+          resources:
+            limits:
+              cpu: 100m
+              memory: 500Mi
+            requests:
+              cpu: 10m
+              memory: 50Mi
+        - name: prometheus-alertmanager-configmap-reload
+          image: "jimmidyson/configmap-reload:v0.4.0"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --volume-dir=/etc/config
+            - --webhook-url=http://localhost:9093/-/reload
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+          resources:
+            limits:
+              cpu: 100m
+              memory: 10Mi
+            requests:
+              cpu: 10m
+              memory: 10Mi
+          securityContext:
+            runAsUser: 0
+            privileged: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: alertmanager-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-operated
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: alertmanager-operated
+    app.kubernetes.io/component: alertmanager
+spec:
+#  type: ClusterIP
+#  clusterIP: None
+#  sessionAffinity: None
+  selector:
+    k8s-app: alertmanager
+  ports:
+    - name: web
+      port: 9093
+      protocol: TCP
+      targetPort: web
+    - name: tcp-mesh
+      port: 9094
+      protocol: TCP
+      targetPort: tcp-mesh
+    - name: udp-mesh
+      port: 9094
+      protocol: UDP
+      targetPort: udp-mesh

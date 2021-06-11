@@ -1,0 +1,19 @@
+groups:
+- name: prometheus-operator
+  rules:
+  - alert: PrometheusOperatorReconcileErrors
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.namespace }} 命名空间中协调 {{ $labels.controller }} 时发生错误！'
+    expr: |
+      rate(prometheus_operator_reconcile_errors_total{job="prometheus-operator",namespace="monitoring"}[5m]) > 0.1
+    for: 1m
+    labels:
+      severity: warning
+  - alert: PrometheusOperator节点lookup错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群协调 Prometheus 时 {{ $labels.namespace }} 命名空间发生错误！'
+    expr: |
+      rate(prometheus_operator_node_address_lookup_errors_total{job="prometheus-operator",namespace="monitoring"}[5m]) > 0.1
+    for: 1m
+    labels:
+      severity: warning

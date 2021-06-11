@@ -1,0 +1,87 @@
+groups:
+- name: kubernetes-system-apiserver
+  rules:
+  - alert: K8S的APISERVER潜在危险过高
+    annotations:
+      message: '{{ $labels.cluster }} 集群 API server 的 {{ $labels.verb }} {{ $labels.resource }} 有异常延迟 {{ $value }} 秒！'
+    expr: |
+      (
+        cluster:apiserver_request_duration_seconds:mean5m{job="apiserver"}
+        >
+        on (verb) group_left()
+        (
+          avg by (verb) (cluster:apiserver_request_duration_seconds:mean5m{job="apiserver"} >= 0)
+          +
+          2*stddev by (verb) (cluster:apiserver_request_duration_seconds:mean5m{job="apiserver"} >= 0)
+        )
+      ) > on (verb) group_left()
+      1.2 * avg by (verb) (cluster:apiserver_request_duration_seconds:mean5m{job="apiserver"} >= 0)
+      and on (verb,resource)
+      cluster_quantile:apiserver_request_duration_seconds:histogram_quantile{job="apiserver",quantile="0.99"}
+      >
+      1
+    for: 2m
+    labels:
+      severity: warning
+  - alert: K8S的APISERVER潜在致命风险
+    annotations:
+      message: '{{ $labels.cluster }} 集群 API server 的 {{ $labels.verb }} {{ $labels.resource }} 有 99% 的请求的延迟达 {{ $value }} 秒！'
+    expr: |
+      cluster_quantile:apiserver_request_duration_seconds:histogram_quantile{job="apiserver",quantile="0.99"} > 4
+    for: 2m
+    labels:
+      severity: critical
+  - alert: K8S的APISERVER存在返回错误过高
+    annotations:
+      message: '{{ $labels.cluster }} 集群 API server 请求中有 {{ $value | humanizePercentage }} 的返回错误！'
+    expr: |
+      sum(rate(apiserver_request_total{job="apiserver",code=~"5.."}[5m]))
+        /
+      sum(rate(apiserver_request_total{job="apiserver"}[5m])) > 0.03
+    for: 2m
+    labels:
+      severity: critical
+  - alert: K8S的APISERVER存在返回错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群 API server 请求中有 {{ $value | humanizePercentage }} 的返回错误！'
+    expr: |
+      sum(rate(apiserver_request_total{job="apiserver",code=~"5.."}[5m]))
+        /
+      sum(rate(apiserver_request_total{job="apiserver"}[5m])) > 0.01
+    for: 2m
+    labels:
+      severity: warning
+  - alert: K8S的APISERVER资源存在返回错误过高
+    annotations:
+      message: '{{ $labels.cluster }} 集群 API server 的 {{ $labels.verb }} {{ $labels.resource }} {{ $labels.subresource }} 的请求中有 {{ $value | humanizePercentage }} 的返回错误！'
+    expr: |
+      sum(rate(apiserver_request_total{job="apiserver",code=~"5.."}[5m])) by (resource,subresource,verb,cluster)
+        /
+      sum(rate(apiserver_request_total{job="apiserver"}[5m])) by (resource,subresource,verb,cluster) > 0.10
+    for: 2m
+    labels:
+      severity: critical
+  - alert: K8S的APISERVER资源存在返回错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群 API server 的 {{ $labels.verb }} {{ $labels.resource }} {{ $labels.subresource }} 的请求中有 {{ $value | humanizePercentage }} 的返回错误！'
+    expr: |
+      sum(rate(apiserver_request_total{job="apiserver",code=~"5.."}[5m])) by (resource,subresource,verb,cluster)
+        /
+      sum(rate(apiserver_request_total{job="apiserver"}[5m])) by (resource,subresource,verb,cluster) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+  - alert: K8S客户端证书即将过期
+    annotations:
+      message: '{{ $labels.cluster }} 集群一个 K8S 的客户端证书将在 7 天内过期！'
+    expr: |
+      apiserver_client_certificate_expiration_seconds_count{job="apiserver"} > 0 and histogram_quantile(0.01, sum by (job, le) (rate(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver"}[5m]))) < 604800
+    labels:
+      severity: warning
+  - alert: K8S客户端证书24小时内过期
+    annotations:
+      message: '{{ $labels.cluster }} 集群一个 K8S 的客户端证书将在 24 小时内过期！'
+    expr: |
+      apiserver_client_certificate_expiration_seconds_count{job="apiserver"} > 0 and histogram_quantile(0.01, sum by (job, le) (rate(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver"}[5m]))) < 86400
+    labels:
+      severity: critical

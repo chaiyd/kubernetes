@@ -1,0 +1,27 @@
+groups:
+- name: general.rules
+  rules:
+  - alert: InstanceDown
+    expr: up == 0
+    for: 1m #持续时间为1min
+    labels:
+      severity: error
+    annotations:
+      summary: "Instance {{ $labels.instance }} 停止工作"
+      description: "{{ $labels.instance }} job {{ $labels.job }} 已经停止1分钟以上."
+  - alert: Target掉线
+    annotations:
+      message: '{{ $labels.cluster }} 集群命名空间 {{ $labels.namespace }} 中 {{ $labels.job }} 的 {{ printf "%.4g" $value }}% 个targets掉线！'
+    expr: 100 * (count(up == 0) BY (cluster, job, namespace, service) / count(up) BY (cluster, job,
+      namespace, service)) > 10
+    for: 1m
+    labels:
+      severity: warning
+  - alert: Watchdog
+    annotations:
+      message: |
+        此警报旨在确认整个警报管道功能性的。这个警报始终处于触发状态，因此它应始终在Alertmanager中触发，并始终针对各类接收器发送。
+    expr: vector(1)
+    for: 12h
+    labels:
+      severity: none

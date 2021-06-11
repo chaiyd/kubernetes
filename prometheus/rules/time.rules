@@ -1,0 +1,11 @@
+groups:
+- name: node-time
+  rules:
+  - alert: 侦测到时钟偏差
+    annotations:
+      message:  '{{ $labels.cluster }} 集群 node-exporter {{ $labels.namespace }}/{{ $labels.pod }} 侦测到时钟偏差！'
+    expr: |
+      abs(node_timex_offset_seconds{job="node-exporter"}) > 0.05
+    for: 1m
+    labels:
+      severity: warning

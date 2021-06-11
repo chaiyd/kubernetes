@@ -1,0 +1,73 @@
+groups:
+- name: node-network
+  rules:
+  - alert: Node网络网卡抖动
+    annotations:
+      message: '{{ $labels.cluster }} 集群侦测到 node-exporter {{ $labels.namespace }}/{{ $labels.pod }} 节点上的网卡 {{ $labels.device }} 状态经常改变！'
+    expr: |
+      changes(node_network_up{job="node-exporter",device!~"veth.+"}[2m]) > 2
+    for: 1m
+    labels:
+      severity: warning
+#  - alert: 节点侦测到TCP已分配的套接字数量
+#    expr: sum(avg_over_time(node_sockstat_TCP_alloc[5m])) by (instance,cluster)  > 5000
+#    for: 1m
+#    labels:
+#      severity: critical
+#    annotations:
+#      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点侦测到 TCP 已分配的套接字数量达到 {{ printf "%.0f" $value }}!'
+#  - alert: 节点侦测到UDP使用中的套接字数量
+#    expr: sum(avg_over_time(node_sockstat_UDP_inuse[5m])) by (instance,cluster)  > 5000
+#    for: 1m
+#    labels:
+#      severity: critical
+#    annotations:
+#      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点侦测到UDP使用中的套接字数量达到 {{ printf "%.0f" $value }}!'
+  - alert: 节点下行网络错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点的网络设备 {{ $labels.device }} 再过去2分钟内侦测到 {{ printf "%.0f" $value }} 的下载错误！'
+    expr: |
+      increase(node_network_receive_errs_total[2m]) > 10
+    for: 1m
+    labels:
+      severity: warning
+  - alert: 节点上行网络错误
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点的网络设备 {{ $labels.device }} 再过去2分钟内侦测到 {{ printf "%.0f" $value }} 的上传错误！'
+    expr: |
+      increase(node_network_transmit_errs_total[2m]) > 10
+    for: 1m
+    labels:
+      severity: warning
+  - alert: 节点下行带宽过高
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点的网络设备 {{ $labels.device }} 下载带宽超过 > 50MB/s'
+    expr: |
+      sum by (icluster,instance) (irate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 50
+    for: 1m
+    labels:
+      severity: warning
+  - alert: 节点上行带宽过高
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点的网络设备 {{ $labels.device }} 上传带宽超过 > 50MB/s'
+    expr: |
+      sum by (cluster,instance) (irate(node_network_transmit_bytes_total[2m])) / 1024 / 1024 > 50
+    for: 1m
+    labels:
+      severity: warning
+  - alert: 节点下行丢包率过高
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点3分钟内下行丢包率超过达到 {{ printf "%.0f" $value }}%！'
+    expr: |
+      sum by (instance,cluster) (irate(node_network_receive_drop_total[3m])) / sum by (instance,cluster) (irate(node_network_receive_packets_total[3m])) * 100 > 80
+    for: 1m
+    labels:
+      severity: cirtical
+  - alert: 节点上行丢包率过高
+    annotations:
+      message: '{{ $labels.cluster }} 集群 {{ $labels.instance }} 节点3分钟内上行丢包率超过达到 {{ printf "%.0f" $value }}%！'
+    expr: |
+      sum by (instance,cluster) (irate(node_network_transmit_drop_total[3m])) / sum by (instance,cluster) (irate(node_network_transmit_packets_total[3m])) * 100 > 80
+    for: 1m
+    labels:
+      severity: cirtical

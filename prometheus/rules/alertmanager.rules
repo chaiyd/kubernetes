@@ -1,0 +1,29 @@
+groups:
+- name: alertmanager.rules
+  rules:
+  - alert: Alertmanager配置不一致
+    annotations:
+      message: '{{ $labels.cluster }} 集群Alertmanager集群的节点之间配置不同步 {{ $labels.service }}！'
+    expr: |
+      count_values("config_hash", alertmanager_config_hash{job="alertmanager-main",namespace="monitoring"}) BY (cluster, service) / ON(cluster, service) GROUP_LEFT() label_replace(max(prometheus_operator_spec_replicas{job="prometheus-operator",namespace="monitoring",controller="alertmanager"}) by (cluster, name, job, namespace, controller), "service", "alertmanager-$1", "name", "(.*)") != 1
+    for: 1m
+    labels:
+      severity: critical
+  - alert: Alertmanager重载失败
+    annotations:
+      message: '{{ $labels.cluster }} 集群在重载Alertmanager配置时失败 {{ $labels.namespace }}/{{ $labels.pod }}！'
+    expr: |
+      alertmanager_config_last_reload_successful{job="alertmanager-main",namespace="monitoring"} == 0
+    for: 1m
+    labels:
+      severity: warning
+  - alert: Alertmanager成员不一致
+    annotations:
+      message: '{{ $labels.cluster }} 集群Alertmanager未找到群集的所有成员！'
+    expr: |
+      alertmanager_cluster_members{job="alertmanager-main",namespace="monitoring"}
+        != on (cluster,service) GROUP_LEFT()
+      count by (cluster,service) (alertmanager_cluster_members{job="alertmanager-main",namespace="monitoring"})
+    for: 1m
+    labels:
+      severity: critical
