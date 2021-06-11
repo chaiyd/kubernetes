@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: common
+  namespace: kube-system
   labels:
     app: grafana
     component: core
@@ -17,18 +17,18 @@ spec:
         app: grafana
     spec:
       containers:
-      - image: grafana/grafana:7.1.0
+      - image: grafana/grafana:8.0.1
         name: grafana
         imagePullPolicy: IfNotPresent
         # env:
         resources:
           # keep request = limit to keep this container in guaranteed class
-          limits:
-            cpu: 100m
-            memory: 100Mi
           requests:
             cpu: 100m
-            memory: 100Mi
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 512Mi
         env:
           # The following env variables set up basic auth twith the default admin user and admin password.
           - name: GF_AUTH_BASIC_ENABLED
@@ -46,28 +46,29 @@ spec:
             port: 3000
           # initialDelaySeconds: 30
           # timeoutSeconds: 1
-        #volumeMounts:
-        #- name: data-nfs
-        #  mountPath: /var/lib/grafana
+        volumeMounts:
+        - name: grafana-persistent-storage
+          mountPath: /var/lib/grafana
       volumes:
-      - name: data-nfs
+      #- name: grafana-persistent-storage
+      #  emptyDir: {}
+      - name: grafana-persistent-storage
         nfs:
-          server: 192.168.6.121  #nfs url
-          path: "/data/share/grafana/data"
-
+          server: 192.168.6.190
+          path: "/data/nfs/kubernetes/kube-system/grafana/data"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: common
+  namespace: kube-system
   labels:
     app: grafana
 spec:
-  type: NodePort
+  #type: NodePort
   ports:
     - port: 3000
-      nodePort: 31000
+      #nodePort: 31000
   selector:
     app: grafana

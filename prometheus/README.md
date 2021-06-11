@@ -11,10 +11,10 @@
 * https://grafana.com/grafana/dashboards/12870
 * 下列版本经过测试，其他版本请自行测试
 ```
-k8s version 1.16.10
-node-exporter version v1.0.1
-prometheus version 2.19.2
-grafana version 7.1.0
+- update kubernetes 1.21.0
+- node-exporter version v1.1.2
+- prometheus version v2.27.1
+- grafana version 8.0.1
 ```
 
 ![grafana-1](../images/grafana-1.png)
