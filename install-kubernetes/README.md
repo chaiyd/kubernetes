@@ -69,6 +69,7 @@
 ## metrics
 - officaial docs
   - [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics.git)
+    - [examples](https://github.com/kubernetes/kube-state-metrics/tree/master/examples)
     
   - [metrics-server](https://github.com/kubernetes-sigs/metrics-server.git)
     ```
