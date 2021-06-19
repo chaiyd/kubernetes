@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skywalking-oap
+  namespace: common
+  labels:
+    app: skywalking-oap
+spec:
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: skywalking-oap
+  template:
+    metadata:
+      labels:
+        app: skywalking-oap
+    spec:
+      containers:
+      - image: apache/skywalking-oap-server:8.5.0-es7
+        imagePullPolicy: IfNotPresent
+        name: skywalking-oap
+        env:
+          - name: SW_OAP_ADDRESS
+            value: skywalking-oap:12800
+          - name: SW_STORAGE_ES_CLUSTER_NODES
+            value: elasticsearch:9200
+        ports:
+          - containerPort: 12800
+        livenessProbe:
+          tcpSocket:
+            port: 12800
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 1000Mi
+      volumes:
+        - name: nfs
+          nfs:
+            server: nfs.com
+            path: "/data/nfs/common/skywalking/logs"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skywalking-oap
+  namespace: common
+  labels:
+    name: skywalking-oap
+spec:
+  #type: NodePort
+  ports:
+    - name: skywalking-oap
+      port: 12800
+      targetPort: 12800
+      protocol: TCP
+      #nodePort: 30337
+    - name: skywalking
+      port: 11800
+      targetPort: 11800
+      protocol: TCP
+      #nodePort: 30337
+  selector:
+    app: skywalking-oap

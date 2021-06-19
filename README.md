@@ -16,6 +16,9 @@
 ## prometheus
 - 存放prometheus metrics相关
 
+## skywalking
+- skywalking-8.5
+
 ## MetalLB
 - https://metallb.universe.tf/
 - Kubernetes does not offer an implementation of network load-balancers (Services of type LoadBalancer) for bare metal clusters.

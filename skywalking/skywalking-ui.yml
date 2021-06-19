@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skywalking-ui
+  namespace: common
+  labels:
+    app: skywalking-ui
+spec:
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: skywalking-ui
+  template:
+    metadata:
+      labels:
+        app: skywalking-ui
+    spec:
+      containers:
+      - image: apache/skywalking-ui:8.5.0
+        imagePullPolicy: IfNotPresent
+        name: skywalking-ui
+        env:
+          - name: SW_OAP_ADDRESS
+            value: skywalking-oap:12800
+        ports:
+          - containerPort: 8080
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 300Mi
+          limits:
+            cpu: 2000m
+            memory: 1000Mi
+#        volumeMounts:
+#          - name: nfs
+#            mountPath: /home/logs
+
+      volumes:
+        - name: nfs
+          nfs:
+            server: nfs.com
+            path: "/data/nfs/skywalking/logs"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: skywalking-ui
+  namespace: common
+  labels:
+    name: skywalking-ui
+spec:
+  #type: NodePort
+  ports:
+    - name: skywalking-ui
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      #nodePort: 30337
+  selector:
+    app: skywalking-ui
