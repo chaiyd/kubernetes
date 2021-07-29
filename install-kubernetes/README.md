@@ -40,6 +40,31 @@
   kind: KubeletConfiguration
   cgroupDriver: systemd
   ```
+  
+## kubeadm add new master node
+- create new token
+  ```
+  # kubeadm token create --print-join-command
+  kubeadm join kubernetes:6443 --token oaxxbj.pmaxxxxxxx6buyr3     --discovery-token-ca-cert-hash sha256:2aad45exxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxf20b7b74385d6ab170d7d98 
+  ```
+- master node new cert
+  ```
+  # kubeadm init phase upload-certs --upload-certs
+  5343f09e20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1e33b29b3247cca
+  ```
+- add new master
+  ```
+  # kubeadm join kubernetes:6443 --token oaxxbj.pmaxxxxxxx6buyr3 \
+      --discovery-token-ca-cert-hash sha256:2aad45exxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxf20b7b74385d6ab170d7d98 \
+      --control-plane --certificate-key 5343f09e20xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1e33b29b3247cca
+  ```
+- add new node
+  ```
+  # kubeadm join kubernetes:6443 --token oaxxbj.pmaxxxxxxx6buyr3 \
+      --discovery-token-ca-cert-hash sha256:2aad45exxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxf20b7b74385d6ab170d7d98
+  ```
+
+
 ## Creating Highly Available clusters with kubeadm
 - kubeadm init --config kubeadm-config.yaml --upload-certs
 - official docs
