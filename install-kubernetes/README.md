@@ -64,6 +64,14 @@
       --discovery-token-ca-cert-hash sha256:2aad45exxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxf20b7b74385d6ab170d7d98
   ```
 
+## kubernetes master
+```shell
+kubectl taint node node01 node-role.kubernetes.io/master-
+```
+- master only
+```
+kubectl taint node node01 node-role.kubernetes.io/master="":NoSchedule
+```
 
 ## Creating Highly Available clusters with kubeadm
 - kubeadm init --config kubeadm-config.yaml --upload-certs
