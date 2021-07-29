@@ -65,7 +65,7 @@
   ```
 
 ## kubernetes master
-```shell
+```
 kubectl taint node node01 node-role.kubernetes.io/master-
 ```
 - master only
