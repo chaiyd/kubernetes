@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nginx
+  namespace: prod
+  labels:
+    app: nginx
+spec:
+#  replicas: 4
+#  strategy:
+#    type: RollingUpdate
+#    rollingUpdate:
+#      maxUnavailable: 25%
+#      maxSurge: 25%
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: chaiyd/nginx:1.20.1
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 2000m
+            memory: 1000Mi
+        volumeMounts:
+          - name: nfs
+            mountPath: /etc/nginx/html
+
+      volumes:
+        - name: nfs
+          nfs:
+            server: .nas.aliyuncs.com
+            path: "/common/nginx/html"
+      imagePullSecrets:
+      - name: docker-registry
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-id: lb-  #alicloud slb
+  name: nginx
+  namespace: prod
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 80
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 443
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app: nginx
