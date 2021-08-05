@@ -24,6 +24,25 @@ spec:
       - image: chaiyd/nginx:1.20.1
         imagePullPolicy: IfNotPresent
         name: nginx
+        #env:
+        #  - name: JAVA_OPTS
+        #    value: -Xms256m -Xmx512m -Duser.timezone=Asia/Shanghai -Dfile.encoding=UTF-8 -Dmeta_url=nacos-headless:8848 -Denv=test
+        #    #-Dspring.profiles.active=local
+        #  - name: skywalking
+        #    value: -javaagent:/home/agent/skywalking-agent.jar -Dskywalking.collector.backend_service=skywalking-oap:11800
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        #readinessProbe:
+        #  httpGet:
+        #    path: /healthCheck
+        #    port: 8080
+        #  initialDelaySeconds: 60
+        #  periodSeconds: 10
         resources:
           requests:
             cpu: 100m
