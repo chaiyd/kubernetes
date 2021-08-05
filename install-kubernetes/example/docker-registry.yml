@@ -1,0 +1,16 @@
+apiVersion: v1
+data:
+  .dockerconfigjson: 
+kind: Secret
+metadata:
+  labels:
+    app: docker-registry
+  name: docker-registry
+  namespace: test
+type: kubernetes.io/dockerconfigjson
+
+#kubectl create secret docker-registry docker-registry \
+#  --docker-server=<你的镜像仓库服务器> \
+#  --docker-username=<你的用户名> \
+#  --docker-password=<你的密码> \
+#  --docker-email=<你的邮箱地址>
