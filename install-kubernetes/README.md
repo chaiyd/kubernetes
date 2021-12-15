@@ -199,16 +199,37 @@ containers:
 - Kubernetes does not offer an implementation of network load-balancers (Services of type LoadBalancer) for bare metal clusters.
 - configmap.yaml
   ```yaml
+   apiVersion: v1
+   kind: ConfigMap
+   metadata:
+     namespace: metallb-system
+     name: config
+   data:
+     config: |
+       address-pools:
+       - name: default
+         protocol: layer2
+         addresses:
+         - 192.168.1.240-192.168.1.250
+  ```
+  
+- deployment
+  ```
   apiVersion: v1
-  kind: ConfigMap
+  kind: Service
   metadata:
-    namespace: metallb-system
-    name: config
-  data:
-    config: |
-      address-pools:
-        - name: default
-      protocol: layer2
-        addresses:
-          - 192.168.6.240-192.168.6.245
+    name: nginx
+    annotations:
+      metallb.universe.tf/address-pool: production-public-ips
+  spec:
+    ports:
+    - port: 80
+      targetPort: 80
+    selector:
+      app: nginx
+    type: LoadBalancer
+    loadBalancerIP: 192.168.1.241
+    externalTrafficPolicy: Local
+    selector:
+      app: nginx
   ```
