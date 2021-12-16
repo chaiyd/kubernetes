@@ -70,6 +70,8 @@ metadata:
     service.beta.kubernetes.io/alibaba-cloud-loadbalancer-id: lb-  #alicloud slb
   name: nginx
   namespace: prod
+  labels:
+    name: logstash
 spec:
   ports:
     - name: http
