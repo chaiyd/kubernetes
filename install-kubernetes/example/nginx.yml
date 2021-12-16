@@ -71,7 +71,7 @@ metadata:
   name: nginx
   namespace: prod
   labels:
-    name: logstash
+    name: nginx
 spec:
   ports:
     - name: http
